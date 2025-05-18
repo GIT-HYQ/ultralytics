@@ -31,76 +31,105 @@ Measuring the gap between two objects is known as distance calculation within a 
 
 - **Localization [Precision](https://www.ultralytics.com/glossary/precision):** Enhances accurate spatial positioning in [computer vision](https://www.ultralytics.com/glossary/computer-vision-cv) tasks.
 - **Size Estimation:** Allows estimation of object size for better contextual understanding.
+- **Scene Understanding:** Improves 3D scene comprehension for better decision-making in applications like [autonomous vehicles](https://www.ultralytics.com/glossary/autonomous-vehicles) and surveillance systems.
+- **Collision Avoidance:** Enables systems to detect potential collisions by monitoring distances between moving objects.
+- **Spatial Analysis:** Facilitates analysis of object relationships and interactions within the monitored environment.
 
 ???+ tip "Distance Calculation"
 
     - Click on any two bounding boxes with Left Mouse click for distance calculation
-
-!!! example "Distance Calculation using YOLO11 Example"
-
-    === "Video Stream"
-
-        ```python
-        import cv2
-
-        from ultralytics import YOLO, solutions
-
-        model = YOLO("yolo11n.pt")
-        names = model.model.names
-
-        cap = cv2.VideoCapture("path/to/video/file.mp4")
-        assert cap.isOpened(), "Error reading video file"
-        w, h, fps = (int(cap.get(x)) for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
-
-        # Video writer
-        video_writer = cv2.VideoWriter("distance_calculation.avi", cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
-
-        # Init distance-calculation obj
-        dist_obj = solutions.DistanceCalculation(names=names, view_img=True)
-
-        while cap.isOpened():
-            success, im0 = cap.read()
-            if not success:
-                print("Video frame is empty or video processing has been successfully completed.")
-                break
-
-            tracks = model.track(im0, persist=True, show=False)
-            im0 = dist_obj.start_process(im0, tracks)
-            video_writer.write(im0)
-
-        cap.release()
-        video_writer.release()
-        cv2.destroyAllWindows()
-        ```
-
-???+ note
-
     - Mouse Right Click will delete all drawn points
     - Mouse Left Click can be used to draw points
 
 ???+ warning "Distance is Estimate"
 
-        Distance will be an estimate and may not be fully accurate, as it is calculated using 2-dimensional data, which lacks information about the object's depth.
+        Distance will be an estimate and may not be fully accurate, as it is calculated using 2-dimensional data,
+        which lacks information about the object's depth.
 
-### Arguments `DistanceCalculation()`
+!!! example "Distance Calculation using Ultralytics YOLO"
 
-| `Name`           | `Type`  | `Default`       | Description                                               |
-| ---------------- | ------- | --------------- | --------------------------------------------------------- |
-| `names`          | `dict`  | `None`          | Dictionary of classes names.                              |
-| `view_img`       | `bool`  | `False`         | Flag to indicate if the video stream should be displayed. |
-| `line_thickness` | `int`   | `2`             | Thickness of the lines drawn on the image.                |
-| `line_color`     | `tuple` | `(255, 255, 0)` | Color of the lines drawn on the image (BGR format).       |
-| `centroid_color` | `tuple` | `(255, 0, 255)` | Color of the centroids drawn (BGR format).                |
+    === "Python"
 
-### Arguments `model.track`
+        ```python
+        import cv2
 
-{% include "macros/track-args.md" %}
+        from ultralytics import solutions
+
+        cap = cv2.VideoCapture("path/to/video.mp4")
+        assert cap.isOpened(), "Error reading video file"
+
+        # Video writer
+        w, h, fps = (int(cap.get(x)) for x in (cv2.CAP_PROP_FRAME_WIDTH, cv2.CAP_PROP_FRAME_HEIGHT, cv2.CAP_PROP_FPS))
+        video_writer = cv2.VideoWriter("distance_output.avi", cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h))
+
+        # Initialize distance calculation object
+        distancecalculator = solutions.DistanceCalculation(
+            model="yolo11n.pt",  # path to the YOLO11 model file.
+            show=True,  # display the output
+        )
+
+        # Process video
+        while cap.isOpened():
+            success, im0 = cap.read()
+
+            if not success:
+                print("Video frame is empty or processing is complete.")
+                break
+
+            results = distancecalculator(im0)
+
+            print(results)  # access the output
+
+            video_writer.write(results.plot_im)  # write the processed frame.
+
+        cap.release()
+        video_writer.release()
+        cv2.destroyAllWindows()  # destroy all opened windows
+        ```
+
+### `DistanceCalculation()` Arguments
+
+Here's a table with the `DistanceCalculation` arguments:
+
+{% from "macros/solutions-args.md" import param_table %}
+{{ param_table(["model"]) }}
+
+You can also make use of various `track` arguments in the `DistanceCalculation` solution.
+
+{% from "macros/track-args.md" import param_table %}
+{{ param_table(["tracker", "conf", "iou", "classes", "verbose", "device"]) }}
+
+Moreover, the following visualization arguments are available:
+
+{% from "macros/visualization-args.md" import param_table %}
+{{ param_table(["show", "line_width", "show_conf", "show_labels"]) }}
+
+## Implementation Details
+
+The `DistanceCalculation` class works by tracking objects across video frames and calculating the Euclidean distance between the centroids of selected bounding boxes. When you click on two objects, the solution:
+
+1. Extracts the centroids (center points) of the selected bounding boxes
+2. Calculates the Euclidean distance between these centroids in pixels
+3. Displays the distance on the frame with a connecting line between the objects
+
+The implementation uses the `mouse_event_for_distance` method to handle mouse interactions, allowing users to select objects and clear selections as needed. The `process` method handles the frame-by-frame processing, tracking objects, and calculating distances.
+
+## Applications
+
+Distance calculation with YOLO11 has numerous practical applications:
+
+- **Retail Analytics:** Measure customer proximity to products and analyze store layout effectiveness
+- **Industrial Safety:** Monitor safe distances between workers and machinery
+- **Traffic Management:** Analyze vehicle spacing and detect tailgating
+- **Sports Analysis:** Calculate distances between players, the ball, and key field positions
+- **Healthcare:** Ensure proper distancing in waiting areas and monitor patient movement
+- **Robotics:** Enable robots to maintain appropriate distances from obstacles and people
 
 ## FAQ
 
 ### How do I calculate distances between objects using Ultralytics YOLO11?
 
-To calculate distances between objects using [Ultralytics YOLO11](https://github.com/ultralytics/ultralytics), you need to identify the bounding box centroids of the detected objects. This process involves initializing the `DistanceCalculation` class from Ultralytics' `solutions` module and using the model's tracking outputs to calculate the distances. You can refer to the implementation in the [distance calculation example](#distance-calculation-using-ultralytics-yolo11).
+To calculate distances between objects using [Ultralytics YOLO11](https://github.com/ultralytics/ultralytics), you need to identify the bounding box centroids of the detected objects. This process involves initializing the `DistanceCalculation` class from Ultralytics' `solutions` module and using the model's tracking outputs to calculate the distances.
 
 ### What are the advantages of using distance calculation with Ultralytics YOLO11?
 
@@ -109,6 +138,8 @@ Using distance calculation with Ultralytics YOLO11 offers several advantages:
 - **Localization Precision:** Provides accurate spatial positioning for objects.
 - **Size Estimation:** Helps estimate physical sizes, contributing to better contextual understanding.
 - **Scene Understanding:** Enhances 3D scene comprehension, aiding improved decision-making in applications like autonomous driving and surveillance.
+- **Real-time Processing:** Performs calculations on-the-fly, making it suitable for live video analysis.
+- **Integration Capabilities:** Works seamlessly with other YOLO11 solutions like [object tracking](../modes/track.md) and [speed estimation](speed-estimation.md).
 
 ### Can I perform distance calculation in real-time video streams with Ultralytics YOLO11?
 
@@ -122,10 +153,9 @@ To delete points drawn during distance calculation with Ultralytics YOLO11, you 
 
 The key arguments for initializing the `DistanceCalculation` class in Ultralytics YOLO11 include:
 
-- `names`: Dictionary mapping class indices to class names.
-- `view_img`: Flag to indicate if the video stream should be displayed.
-- `line_thickness`: Thickness of the lines drawn on the image.
-- `line_color`: Color of the lines drawn on the image (BGR format).
-- `centroid_color`: Color of the centroids (BGR format).
+- `model`: Path to the YOLO11 model file.
+- `tracker`: Tracking algorithm to use (default is 'botsort.yaml').
+- `conf`: Confidence threshold for detections.
+- `show`: Flag to display the output.
 
-For an exhaustive list and default values, see the [arguments of DistanceCalculation](#arguments-distancecalculation).
+For an exhaustive list and default values, see the [arguments of DistanceCalculation](#distancecalculation-arguments).

@@ -28,7 +28,7 @@ This guide provides a comprehensive introduction to setting up a Conda environme
 
 ## Prerequisites
 
-- You should have Anaconda or Miniconda installed on your system. If not, download and install it from [Anaconda](https://www.anaconda.com/) or [Miniconda](https://docs.conda.io/projects/miniconda/en/latest/).
+- You should have Anaconda or Miniconda installed on your system. If not, download and install it from [Anaconda](https://www.anaconda.com/) or [Miniconda](https://www.anaconda.com/docs/main).
 
 ---
 
@@ -37,7 +37,7 @@ This guide provides a comprehensive introduction to setting up a Conda environme
 First, let's create a new Conda environment. Open your terminal and run the following command:
 
 ```bash
-conda create --name ultralytics-env python=3.8 -y
+conda create --name ultralytics-env python=3.11 -y
 ```
 
 Activate the new environment:
@@ -98,8 +98,8 @@ Run the image:
 
 ```bash
 # Run the Ultralytics image in a container with GPU support
-sudo docker run -it --ipc=host --gpus all $t  # all GPUs
-sudo docker run -it --ipc=host --gpus '"device=2,3"' $t  # specify GPUs
+sudo docker run -it --ipc=host --gpus all $t            # all GPUs
+sudo docker run -it --ipc=host --gpus '"device=2,3"' $t # specify GPUs
 ```
 
 ## Speeding Up Installation with Libmamba
@@ -135,7 +135,7 @@ Congratulations! You have successfully set up a Conda environment, installed the
 Setting up a Conda environment for Ultralytics projects is straightforward and ensures smooth package management. First, create a new Conda environment using the following command:
 
 ```bash
-conda create --name ultralytics-env python=3.8 -y
+conda create --name ultralytics-env python=3.11 -y
 ```
 
 Then, activate the new environment with:
@@ -189,4 +189,4 @@ Then configure Conda to use `libmamba` as the solver:
 conda config --set solver libmamba
 ```
 
-This setup provides faster and more efficient package management. For more tips on optimizing your environment, read about [libmamba installation](../quickstart.md).
+This setup provides faster and more efficient package management. For more tips on optimizing your environment, read about [libmamba installation](https://www.anaconda.com/blog/a-faster-conda-for-a-growing-community).

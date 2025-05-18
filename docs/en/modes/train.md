@@ -1,7 +1,7 @@
 ---
 comments: true
 description: Learn how to efficiently train object detection models using YOLO11 with comprehensive instructions on settings, augmentation, and hardware utilization.
-keywords: Ultralytics, YOLO11, model training, deep learning, object detection, GPU training, dataset augmentation, hyperparameter tuning, model performance, M1 M2 training
+keywords: Ultralytics, YOLO11, model training, deep learning, object detection, GPU training, dataset augmentation, hyperparameter tuning, model performance, apple silicon training
 ---
 
 # Model Training with Ultralytics YOLO
@@ -49,9 +49,13 @@ The following are some notable features of YOLO11's Train mode:
 
 Train YOLO11n on the COCO8 dataset for 100 [epochs](https://www.ultralytics.com/glossary/epoch) at image size 640. The training device can be specified using the `device` argument. If no argument is passed GPU `device=0` will be used if available, otherwise `device='cpu'` will be used. See Arguments section below for a full list of training arguments.
 
+!!! warning "Windows Multi-Processing Error"
+
+    On Windows, you may receive a `RuntimeError` when launching the training as a script. Add a `if __name__ == "__main__":` block before your training code to resolve it.
+
 !!! example "Single-GPU and CPU Training Example"
 
-    Device is determined automatically. If a GPU is available then it will be used, otherwise training will start on CPU.
+    Device is determined automatically. If a GPU is available then it will be used (default CUDA device 0), otherwise training will start on CPU.
 
     === "Python"
 
@@ -98,6 +102,9 @@ Multi-GPU training allows for more efficient utilization of available hardware r
 
         # Train the model with 2 GPUs
         results = model.train(data="coco8.yaml", epochs=100, imgsz=640, device=[0, 1])
+
+        # Train the model with the two most idle GPUs
+        results = model.train(data="coco8.yaml", epochs=100, imgsz=640, device=[-1, -1])
         ```
 
     === "CLI"
@@ -105,13 +112,57 @@ Multi-GPU training allows for more efficient utilization of available hardware r
         ```bash
         # Start training from a pretrained *.pt model using GPUs 0 and 1
         yolo detect train data=coco8.yaml model=yolo11n.pt epochs=100 imgsz=640 device=0,1
+
+        # Use the two most idle GPUs
+        yolo detect train data=coco8.yaml model=yolo11n.pt epochs=100 imgsz=640 device=-1,-1
         ```
 
-### Apple M1 and M2 MPS Training
+### Idle GPU Training
 
-With the support for Apple M1 and M2 chips integrated in the Ultralytics YOLO models, it's now possible to train your models on devices utilizing the powerful Metal Performance Shaders (MPS) framework. The MPS offers a high-performance way of executing computation and image processing tasks on Apple's custom silicon.
+Idle GPU Training enables automatic selection of the least utilized GPUs in multi-GPU systems, optimizing resource usage without manual GPU selection. This feature identifies available GPUs based on utilization metrics and VRAM availability.
 
-To enable training on Apple M1 and M2 chips, you should specify 'mps' as your device when initiating the training process. Below is an example of how you could do this in Python and via the command line:
+!!! example "Idle GPU Training Example"
+
+    To automatically select and use the most idle GPU(s) for training, use the `-1` device parameter. This is particularly useful in shared computing environments or servers with multiple users.
+
+    === "Python"
+
+        ```python
+        from ultralytics import YOLO
+
+        # Load a model
+        model = YOLO("yolov8n.pt")  # load a pretrained model (recommended for training)
+
+        # Train using the single most idle GPU
+        results = model.train(data="coco8.yaml", epochs=100, imgsz=640, device=-1)
+
+        # Train using the two most idle GPUs
+        results = model.train(data="coco8.yaml", epochs=100, imgsz=640, device=[-1, -1])
+        ```
+
+    === "CLI"
+
+        ```bash
+        # Start training using the single most idle GPU
+        yolo detect train data=coco8.yaml model=yolov8n.pt epochs=100 imgsz=640 device=-1
+
+        # Start training using the two most idle GPUs
+        yolo detect train data=coco8.yaml model=yolov8n.pt epochs=100 imgsz=640 device=-1,-1
+        ```
+
+The auto-selection algorithm prioritizes GPUs with:
+
+1. Lower current utilization percentages
+2. Higher available memory (free VRAM)
+3. Lower temperature and power consumption
+
+This feature is especially valuable in shared computing environments or when running multiple training jobs across different models. It automatically adapts to changing system conditions, ensuring optimal resource allocation without manual intervention.
+
+### Apple Silicon MPS Training
+
+With the support for Apple silicon chips integrated in the Ultralytics YOLO models, it's now possible to train your models on devices utilizing the powerful Metal Performance Shaders (MPS) framework. The MPS offers a high-performance way of executing computation and image processing tasks on Apple's custom silicon.
+
+To enable training on Apple silicon chips, you should specify 'mps' as your device when initiating the training process. Below is an example of how you could do this in Python and via the command line:
 
 !!! example "MPS Training Example"
 
@@ -134,7 +185,7 @@ To enable training on Apple M1 and M2 chips, you should specify 'mps' as your de
         yolo detect train data=coco8.yaml model=yolo11n.pt epochs=100 imgsz=640 device=mps
         ```
 
-While leveraging the computational power of the M1/M2 chips, this enables more efficient processing of the training tasks. For more detailed guidance and advanced configuration options, please refer to the [PyTorch MPS documentation](https://pytorch.org/docs/stable/notes/mps.html).
+While leveraging the computational power of the Apple silicon chips, this enables more efficient processing of the training tasks. For more detailed guidance and advanced configuration options, please refer to the [PyTorch MPS documentation](https://pytorch.org/docs/stable/notes/mps.html).
 
 ### Resuming Interrupted Trainings
 
@@ -199,7 +250,7 @@ These settings can be adjusted to meet the specific requirements of the dataset 
 
 ## Logging
 
-In training a YOLO11 model, you might find it valuable to keep track of the model's performance over time. This is where logging comes into play. Ultralytics' YOLO provides support for three types of loggers - Comet, ClearML, and TensorBoard.
+In training a YOLO11 model, you might find it valuable to keep track of the model's performance over time. This is where logging comes into play. Ultralytics YOLO provides support for three types of loggers - [Comet](../integrations/comet.md), [ClearML](../integrations/clearml.md), and [TensorBoard](../integrations/tensorboard.md).
 
 To use a logger, select it from the dropdown menu in the code snippet above and run it. The chosen logger will be installed and initialized.
 
@@ -253,17 +304,17 @@ To use TensorBoard in [Google Colab](https://colab.research.google.com/github/ul
 
         ```bash
         load_ext tensorboard
-        tensorboard --logdir ultralytics/runs  # replace with 'runs' directory
+        tensorboard --logdir ultralytics/runs # replace with 'runs' directory
         ```
 
-To use TensorBoard locally run the below command and view results at http://localhost:6006/.
+To use TensorBoard locally run the below command and view results at `http://localhost:6006/`.
 
 !!! example
 
     === "CLI"
 
         ```bash
-        tensorboard --logdir ultralytics/runs  # replace with 'runs' directory
+        tensorboard --logdir ultralytics/runs # replace with 'runs' directory
         ```
 
 This will load TensorBoard and direct it to the directory where your training logs are saved.
@@ -335,9 +386,9 @@ To resume training from an interrupted session, set the `resume` argument to `Tr
 
 Check the section on [Resuming Interrupted Trainings](#resuming-interrupted-trainings) for more information.
 
-### Can I train YOLO11 models on Apple M1 and M2 chips?
+### Can I train YOLO11 models on Apple silicon chips?
 
-Yes, Ultralytics YOLO11 supports training on Apple M1 and M2 chips utilizing the Metal Performance Shaders (MPS) framework. Specify 'mps' as your training device.
+Yes, Ultralytics YOLO11 supports training on Apple silicon chips utilizing the Metal Performance Shaders (MPS) framework. Specify 'mps' as your training device.
 
 !!! example "MPS Training Example"
 
@@ -349,7 +400,7 @@ Yes, Ultralytics YOLO11 supports training on Apple M1 and M2 chips utilizing the
         # Load a pretrained model
         model = YOLO("yolo11n.pt")
 
-        # Train the model on M1/M2 chip
+        # Train the model on Apple silicon chip (M1/M2/M3/M4)
         results = model.train(data="coco8.yaml", epochs=100, imgsz=640, device="mps")
         ```
 
@@ -359,7 +410,7 @@ Yes, Ultralytics YOLO11 supports training on Apple M1 and M2 chips utilizing the
         yolo detect train data=coco8.yaml model=yolo11n.pt epochs=100 imgsz=640 device=mps
         ```
 
-For more details, refer to the [Apple M1 and M2 MPS Training](#apple-m1-and-m2-mps-training) section.
+For more details, refer to the [Apple Silicon MPS Training](#apple-silicon-mps-training) section.
 
 ### What are the common training settings, and how do I configure them?
 
